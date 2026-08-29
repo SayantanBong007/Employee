@@ -57,6 +57,13 @@ public class EmployeeController {
         return ResponseEntity.ok(dtos);
     }
 
+    // free-text search across employee names
+    @GetMapping("/search")
+    public ResponseEntity<List<EmployeeDTO>> searchEmployees(@RequestParam String keyword) {
+        List<EmployeeDTO> dtos = employeeService.searchEmployeesRaw(keyword);
+        return ResponseEntity.ok(dtos);
+    }
+
 
     // get employees by department id (DTO list)
     @GetMapping("/department/{deptId}")
