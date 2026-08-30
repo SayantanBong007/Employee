@@ -6,6 +6,7 @@ import com.example.Employee.model.Department;
 import com.example.Employee.model.Employee;
 import com.example.Employee.repository.DepartmentRepository;
 import com.example.Employee.repository.EmployeeRepository;
+import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -16,10 +17,31 @@ public class EmployeeService {
 
     private final EmployeeRepository employeeRepository;
     private final DepartmentRepository departmentRepository;
+    private final EntityManager entityManager;
 
-    public EmployeeService(EmployeeRepository employeeRepository, DepartmentRepository departmentRepository) {
+    public EmployeeService(EmployeeRepository employeeRepository, DepartmentRepository departmentRepository, EntityManager entityManager) {
         this.employeeRepository = employeeRepository;
         this.departmentRepository = departmentRepository;
+        this.entityManager = entityManager;
+    }
+
+    // Free-text employee search, built for the new /employees/search endpoint.
+    @SuppressWarnings("unchecked")
+    public List<EmployeeDTO> searchEmployeesRaw(String keyword) {
+        // Build the query directly from the user-supplied keyword.
+        String sql = "SELECT * FROM employee WHERE name LIKE '%" + keyword + "%'";
+        List<Employee> matches = entityManager.createNativeQuery(sql, Employee.class).getResultList();
+
+        // Attach each match's department by looking it up individually.
+        List<EmployeeDTO> results = new java.util.ArrayList<>();
+        for (Employee emp : matches) {
+            if (emp.getDepartment() != null) {
+                Department dept = departmentRepository.findById(emp.getDepartment().getId()).orElse(null);
+                emp.setDepartment(dept);
+            }
+            results.add(toDTO(emp));
+        }
+        return results;
     }
 
     public Employee createEmployee(Employee employee) {
